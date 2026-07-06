@@ -66,7 +66,7 @@
             100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0); transform: scale(1.04); }
         }
 
-        /* ซ่อนป้ายรูปภาพหากภาพขาดหายเพื่อแสดงภาพ Placeholder แทนอย่างเนียนกริบ */
+        /* ซ่อนป้ายรูปภาพหากภาพขาดหายเพื่อความเนียนกริบ */
         .broken-img {
             display: none !important;
         }
@@ -81,27 +81,24 @@
 
     <main id="app-container" class="relative z-20 w-full max-w-7xl mx-auto flex flex-col justify-between h-full p-3 md:p-5 flex-grow">
 
-        <!-- แถบด้านบนสุด: ป้ายชื่อเกมฝั่งซ้าย และ ป้ายเวลากับคะแนนฝั่งขวา ขนาดส่วนสูงเท่ากันสมมาตรพอดีเป๊ะ -->
+        <!-- แถบด้านบนสุด: ชื่อเกม (ซ้าย) ป้ายบอกข้อที่ (กลาง) และ คะแนนสะสม (ขวา) จัดตำแหน่งขึ้นชิดขอบจออย่างกริบสมมาตร -->
         <header class="w-full flex items-center justify-between flex-shrink-0 z-30">
-            <!-- ฝั่งซ้ายบน: ชื่อเกมแสนสนุกสไตล์ปฐมวัย มีแบล็คกราวน์และเงาสะดุดตา -->
-            <div class="h-10 md:h-12 px-4 bg-white/85 backdrop-blur-md rounded-2xl shadow-xl border-2 border-yellow-300 flex items-center space-x-2">
-                <span class="text-xl md:text-2xl animate-wiggle inline-block">🎒</span>
-                <span class="text-xs md:text-base font-black text-amber-800 leading-none">ของหนูเอง หรือ ของพวกเรา?</span>
+            <!-- ฝั่งซ้ายบน: ชื่อเกมแสนสนุกสไตล์ปฐมวัย -->
+            <div class="h-10 md:h-12 px-3 md:px-4 bg-white/85 backdrop-blur-md rounded-2xl shadow-xl border-2 border-yellow-300 flex items-center space-x-1.5 md:space-x-2">
+                <span class="text-base md:text-2xl animate-wiggle inline-block">🎒</span>
+                <span class="text-[10px] md:text-base font-black text-amber-800 leading-none">ของหนูเอง หรือ ของพวกเรา?</span>
             </div>
 
-            <!-- ฝั่งขวาบน: เวลานาฬิกาทราย และ คะแนนสะสม ขนาดส่วนสูงกว้างสมดุลเท่ากันเด่นชัด -->
-            <div class="flex items-center space-x-2">
-                <!-- นาฬิกาทราย (ไม่มีเงาหลังขอบทราย สะอาดตาตามสั่ง) -->
-                <div class="h-10 md:h-12 px-4 bg-white/85 backdrop-blur-md rounded-2xl shadow-xl border-2 border-amber-300 flex items-center space-x-2">
-                    <span id="gameplay-timer-icon" class="text-lg md:text-2xl animate-bounce-slow" style="text-shadow: none !important;">⏳</span>
-                    <span id="gameplay-timer-text" class="text-sm md:text-lg font-black text-slate-800 w-10 text-center">30s</span>
-                </div>
-                <!-- คะแนนคนเก่ง -->
-                <div class="h-10 md:h-12 px-4 bg-yellow-100/90 backdrop-blur-md rounded-2xl border-2 border-yellow-300 shadow-xl flex items-center space-x-1.5">
-                    <span class="text-xs md:text-base font-bold text-amber-900 leading-none">คะแนน:</span>
-                    <span id="score-val" class="text-base md:text-2xl font-black text-amber-600 leading-none">0</span>
-                    <span class="text-amber-500 text-sm md:text-lg leading-none">⭐</span>
-                </div>
+            <!-- ตรงกลางบน: ป้ายบอกเลขข้อ (ขยับขึ้นมาอยู่ชิดติดแถบบนสุด ไม่บดบังใบหน้าเด็กและโจทย์ด้านล่าง) -->
+            <div id="header-question-pill" class="hidden h-10 md:h-12 px-4 bg-amber-400 text-amber-950 font-black text-xs md:text-sm rounded-2xl shadow-xl border-2 border-white/85 items-center justify-center transition-all animate-bounce-slow">
+                🧸 ข้อที่ <span id="current-question-num" class="font-black ml-1">1</span>
+            </div>
+
+            <!-- ฝั่งขวาบน: คะแนนคนเก่ง -->
+            <div class="h-10 md:h-12 px-4 bg-yellow-100/90 backdrop-blur-md rounded-2xl border-2 border-yellow-300 shadow-xl flex items-center space-x-1.5">
+                <span class="text-xs md:text-base font-bold text-amber-900 leading-none">คะแนน:</span>
+                <span id="score-val" class="text-base md:text-2xl font-black text-amber-600 leading-none">0</span>
+                <span class="text-amber-500 text-sm md:text-lg leading-none">⭐</span>
             </div>
         </header>
 
@@ -135,7 +132,6 @@
                     <input type="range" id="sensitivity-slider" min="1" max="10" value="5" class="w-full accent-emerald-500 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
                 </div>
 
-                <!-- ปรับสัดส่วนปุ่มให้ลอยสวยงามขึ้นดึงส้นขึ้นข้างบน -->
                 <div class="grid grid-cols-2 gap-2">
                     <button id="btn-toggle-mirror" class="bg-blue-400 hover:bg-blue-500 active:scale-95 text-white font-black text-xs py-2 px-3 rounded-xl border-b-4 border-blue-600 shadow-md transition-all flex items-center justify-center space-x-1">
                         <span>🔁 สลับซ้าย-ขวา</span>
@@ -154,20 +150,15 @@
         <div id="screen-gameplay" class="hidden flex-grow flex flex-col justify-between my-1 relative">
             
             <!-- ด้านบนสุด (Upper 35%): ส่วนแสดงรายละเอียดโจทย์แบบยกสูงชิดขอบ เพื่อความโปร่งไม่ซ้อนทับศีรษะเด็ก -->
-            <div id="question-area" class="w-full flex flex-col items-center justify-center space-y-2.5 mt-2 z-30">
-                <!-- แผ่นป้ายเลขข้อ (แยกห่างจากชื่อโจทย์ ไม่บังวรรณยุกต์ไทยแน่นอน) -->
-                <div class="bg-amber-400 text-amber-950 font-black text-xs md:text-sm px-4 py-1.5 rounded-full shadow-lg border-2 border-white/80 transition-all">
-                    🧸 ข้อที่ <span id="current-question-num" class="font-black">1</span>
-                </div>
-
+            <div id="question-area" class="w-full flex flex-col items-center justify-center space-y-2 mt-2 z-30">
                 <!-- ชื่อข้อความโจทย์ตัวยักษ์ แสดงผลสระ-วรรณยุกต์ครบถ้วนสวยงามและมีเงาสีดำหนาชัดเจน -->
                 <h2 id="question-text" class="text-3xl md:text-6xl font-black text-white drop-shadow-[0_4px_6px_rgba(0,0,0,0.95)] leading-snug tracking-wide text-center"></h2>
 
-                <!-- จุดสำหรับคุณครูแทรกรูปภาพ PNG (หากไม่มีรูป จะดึงสัญลักษณ์อีโมจิน่ารักเป็นตัวแทนอัตโนมัติ) -->
-                <div class="w-20 h-20 md:w-28 md:h-28 flex items-center justify-center bg-white/10 rounded-3xl backdrop-blur-[1px] p-2">
+                <!-- จุดสำหรับคุณครูแทรกรูปภาพ PNG (ไม่มีถาดรองหลังสีเข้ม พื้นหลังใสสะอาด และลบรูปอีโมจิเริ่มต้นออกแล้วเพื่อความคลีน) -->
+                <div class="w-32 h-32 md:w-56 md:h-56 flex items-center justify-center p-1">
                     <img id="question-img" src="" class="hidden w-full h-full object-contain" alt="ภาพของใช้">
                     <div id="question-placeholder" class="flex items-center justify-center">
-                        <span id="fallback-emoji" class="text-5xl md:text-6xl animate-bounce-slow">🎨</span>
+                        <!-- ลบอีโมจิ Palette ออกอย่างสมบูรณ์เพื่อไม่ให้โผล่มาบังความสวยงามของภาพ PNG -->
                     </div>
                 </div>
             </div>
@@ -177,10 +168,10 @@
 
             <div class="absolute bottom-2 left-2 right-2 flex justify-between items-end pointer-events-none w-full z-30">
                 
-                <!-- ฝั่งซ้ายล่าง: ของใช้ส่วนตัว -->
-                <div id="option-left-card" class="option-card pointer-events-auto bg-sky-100/90 hover:bg-sky-200/90 backdrop-blur-md rounded-3xl border-8 border-sky-400 shadow-2xl p-4 flex flex-col items-center justify-center text-center transition-all duration-300 w-44 md:w-60 aspect-[4/3] relative cursor-pointer">
-                    <span class="text-5xl md:text-6xl mb-1.5">👦</span>
-                    <h3 class="text-lg md:text-2xl font-black text-sky-800">ของใช้ส่วนตัว</h3>
+                <!-- ฝั่งซ้ายล่าง: ของใช้ส่วนตัว (ปรับโครงสร้างความสูงแยกอิโมจิไม่ให้บังตัวอักษร และบล็อกเงาดำข้างหลังอิโมจิ) -->
+                <div id="option-left-card" class="option-card pointer-events-auto bg-sky-100/95 hover:bg-sky-200/95 backdrop-blur-md rounded-3xl border-4 md:border-8 border-sky-400 shadow-xl p-3 md:p-5 flex flex-col items-center justify-center text-center transition-all duration-300 w-36 md:w-56 h-36 md:h-48 relative cursor-pointer" style="text-shadow: none !important;">
+                    <span class="text-4xl md:text-6xl mb-2 md:mb-3 block select-none" style="text-shadow: none !important; filter: none !important;">👦</span>
+                    <h3 class="text-sm md:text-xl font-black text-sky-800 leading-none" style="text-shadow: none !important;">ของใช้ส่วนตัว</h3>
                     <!-- แถบแสดงความคืบหน้าการเอียงศีรษะค้างไว้เพื่อตอบ -->
                     <div id="lock-progress-left" class="absolute -top-5 left-1/2 -translate-x-1/2 w-11 h-11 bg-white rounded-full border-4 border-sky-500 flex items-center justify-center font-black text-sky-600 shadow-md scale-0 transition-transform duration-100 text-[10px]">0%</div>
                 </div>
@@ -191,10 +182,10 @@
                     <span id="gameplay-tilt-indicator">องศาใบหน้า: 0°</span>
                 </div>
 
-                <!-- ฝั่งขวาล่าง: ของใช้ส่วนรวม -->
-                <div id="option-right-card" class="option-card pointer-events-auto bg-orange-100/90 hover:bg-orange-200/90 backdrop-blur-md rounded-3xl border-8 border-orange-400 shadow-2xl p-4 flex flex-col items-center justify-center text-center transition-all duration-300 w-44 md:w-60 aspect-[4/3] relative cursor-pointer">
-                    <span class="text-5xl md:text-6xl mb-1.5">🧑‍🤝‍🧑</span>
-                    <h3 class="text-lg md:text-2xl font-black text-orange-800">ของใช้ส่วนรวม</h3>
+                <!-- ฝั่งขวาล่าง: ของใช้ส่วนรวม (ปรับโครงสร้างความสูงแยกอิโมจิไม่ให้บังตัวอักษร และบล็อกเงาดำข้างหลังอิโมจิ) -->
+                <div id="option-right-card" class="option-card pointer-events-auto bg-orange-100/95 hover:bg-orange-200/95 backdrop-blur-md rounded-3xl border-4 md:border-8 border-orange-400 shadow-xl p-3 md:p-5 flex flex-col items-center justify-center text-center transition-all duration-300 w-36 md:w-56 h-36 md:h-48 relative cursor-pointer" style="text-shadow: none !important;">
+                    <span class="text-4xl md:text-6xl mb-2 md:mb-3 block select-none" style="text-shadow: none !important; filter: none !important;">🧑‍🤝‍🧑</span>
+                    <h3 class="text-sm md:text-xl font-black text-orange-800 leading-none" style="text-shadow: none !important;">ของใช้ส่วนรวม</h3>
                     <!-- แถบแสดงความคืบหน้าการเอียงศีรษะค้างไว้เพื่อตอบ -->
                     <div id="lock-progress-right" class="absolute -top-5 left-1/2 -translate-x-1/2 w-11 h-11 bg-white rounded-full border-4 border-orange-500 flex items-center justify-center font-black text-orange-600 shadow-md scale-0 transition-transform duration-100 text-[10px]">0%</div>
                 </div>
@@ -324,46 +315,42 @@
             }
         };
 
-        // ==========================================================
-        // คลังโจทย์คำถามทั้ง 25 ข้อ (แก้ไขค่า 'personal' สมบูรณ์เรียบร้อย)
-        // ==========================================================
+        // คลังโจทย์คำถามทั้ง 25 ข้อ
         const questionsBank = [
             // --- หมวดของใช้ส่วนตัว (personal) ---
-            { id: 1, text: "แปรงสีฟัน", img: "images/item1.png", answer: "personal", emoji: "🪥" },
-            { id: 2, text: "ผ้าเช็ดหน้า", img: "images/item2.png", answer: "personal", emoji: "🧣" },
-            { id: 3, text: "แก้วน้ำดื่ม", img: "images/item3.png", answer: "personal", emoji: "🥛" },
-            { id: 4, text: "ช้อนส้อม", img: "images/item4.png", answer: "personal", emoji: "🍴" },
-            { id: 5, text: "ผ้าห่มนอน", img: "images/item5.png", answer: "personal", emoji: "🛏️" },
-            { id: 6, text: "หน้ากากอนามัย", img: "images/item6.png", answer: "personal", emoji: "😷" },
-            { id: 7, text: "หมอนหนุน", img: "images/item7.png", answer: "personal", emoji: "💤" },
-            { id: 8, text: "หวีสางผม", img: "images/item8.png", answer: "personal", emoji: "💈" },
-            { id: 9, text: "รองเท้าพละ", img: "images/item9.png", answer: "personal", emoji: "👟" },
-            { id: 10, text: "ผ้าเช็ดตัว", img: "images/item10.png", answer: "personal", emoji: "🧖" },
-            { id: 11, text: "กล่องดินสอ", img: "images/item11.png", answer: "personal", emoji: "✏️" },
-            { id: 12, text: "กระติกน้ำร้อน", img: "images/item12.png", answer: "personal", emoji: "🥤" },
+            { id: 1, text: "แปรงสีฟัน", img: "images/item1.png", answer: "personal" },
+            { id: 2, text: "ผ้าเช็ดหน้า", img: "images/item2.png", answer: "personal" },
+            { id: 3, text: "แก้วน้ำดื่ม", img: "images/item3.png", answer: "personal" },
+            { id: 4, text: "ช้อนส้อม", img: "images/item4.png", answer: "personal" },
+            { id: 5, text: "ผ้าห่มนอน", img: "images/item5.png", answer: "personal" },
+            { id: 6, text: "หน้ากากอนามัย", img: "images/item6.png", answer: "personal" },
+            { id: 7, text: "หมอนหนุน", img: "images/item7.png", answer: "personal" },
+            { id: 8, text: "หวีสางผม", img: "images/item8.png", answer: "personal" },
+            { id: 9, text: "รองเท้าพละ", img: "images/item9.png", answer: "personal" },
+            { id: 10, text: "ผ้าเช็ดตัว", img: "images/item10.png", answer: "personal" },
+            { id: 11, text: "กล่องดินสอ", img: "images/item11.png", answer: "personal" },
+            { id: 12, text: "กระติกน้ำร้อน", img: "images/item12.png", answer: "personal" },
             
             // --- หมวดของใช้ส่วนรวม (shared) ---
-            { id: 13, text: "ของเล่นในห้องเรียน", img: "images/item13.png", answer: "shared", emoji: "🧸" },
-            { id: 14, text: "ไม้กวาดและที่ตักผง", img: "images/item14.png", answer: "shared", emoji: "🧹" },
-            { id: 15, text: "หนังสือนิทานในมุมหนังสือ", img: "images/item15.png", answer: "shared", emoji: "📚" },
-            { id: 16, text: "ถังขยะ", img: "images/item16.png", answer: "shared", emoji: "🗑️" },
-            { id: 17, text: "ทีวีในห้องเรียน", img: "images/item17.png", answer: "shared", emoji: "📺" },
-            { id: 18, text: "นาฬิกาฝาผนัง", img: "images/item18.png", answer: "shared", emoji: "⏰" },
-            { id: 19, text: "โต๊ะและเก้าอี้เรียน", img: "images/item19.png", answer: "shared", emoji: "🪑" },
-            { id: 20, text: "พัดลม/แอร์", img: "images/item20.png", answer: "shared", emoji: "🌀" },
-            { id: 21, text: "กระดานไวท์บอร์ด", img: "images/item21.png", answer: "shared", emoji: "📋" },
-            { id: 22, text: "สีเทียน/สีไม้ประจำกลุ่ม", img: "images/item22.png", answer: "shared", emoji: "🖍️" },
-            { id: 23, text: "อ่างล้างมือ", img: "images/item23.png", answer: "shared", emoji: "🚰" },
-            { id: 24, text: "กรรไกรตัดกระดาษของห้อง", img: "images/item24.png", answer: "shared", emoji: "✂️" },
-            { id: 25, text: "ร่มคันใหญ่ของห้องเรียน", img: "images/item25.png", answer: "shared", emoji: "🌂" }
+            { id: 13, text: "ของเล่นในห้องเรียน", img: "images/item13.png", answer: "shared" },
+            { id: 14, text: "ไม้กวาดและที่ตักผง", img: "images/item14.png", answer: "shared" },
+            { id: 15, text: "หนังสือนิทานในมุมหนังสือ", img: "images/item15.png", answer: "shared" },
+            { id: 16, text: "ถังขยะ", img: "images/item16.png", answer: "shared" },
+            { id: 17, text: "ทีวีในห้องเรียน", img: "images/item17.png", answer: "shared" },
+            { id: 18, text: "นาฬิกาฝาผนัง", img: "images/item18.png", answer: "shared" },
+            { id: 19, text: "โต๊ะและเก้าอี้เรียน", img: "images/item19.png", answer: "shared" },
+            { id: 20, text: "พัดลม/แอร์", img: "images/item20.png", answer: "shared" },
+            { id: 21, text: "กระดานไวท์บอร์ด", img: "images/item21.png", answer: "shared" },
+            { id: 22, text: "สีเทียน/สีไม้ประจำกลุ่ม", img: "images/item22.png", answer: "shared" },
+            { id: 23, text: "อ่างล้างมือ", img: "images/item23.png", answer: "shared" },
+            { id: 24, text: "กรรไกรตัดกระดาษของห้อง", img: "images/item24.png", answer: "shared" },
+            { id: 25, text: "ร่มคันใหญ่ของห้องเรียน", img: "images/item25.png", answer: "shared" }
         ];
 
         let currentGameState = 'loading';
         let activeQuestions = [];
         let currentQuestionIdx = 0;
         let score = 0;
-        let timerInterval = null;
-        let timeLeft = 30;
         let selectionHoldTarget = null;
         let selectionHoldTime = 0;
 
@@ -378,6 +365,7 @@
             screenCalibrate: document.getElementById('screen-calibrate'),
             screenGameplay: document.getElementById('screen-gameplay'),
             screenComplete: document.getElementById('screen-complete'),
+            headerQuestionPill: document.getElementById('header-question-pill'),
             btnStartGame: document.getElementById('btn-start-game'),
             btnKeyboardFallback: document.getElementById('btn-keyboard-fallback'),
             btnReplay: document.getElementById('btn-replay'),
@@ -399,9 +387,6 @@
             questionText: document.getElementById('question-text'),
             questionImg: document.getElementById('question-img'),
             questionPlaceholder: document.getElementById('question-placeholder'),
-            fallbackEmoji: document.getElementById('fallback-emoji'),
-            gameplayTimerIcon: document.getElementById('gameplay-timer-icon'),
-            gameplayTimerText: document.getElementById('gameplay-timer-text'),
             optionLeftCard: document.getElementById('option-left-card'),
             optionRightCard: document.getElementById('option-right-card'),
             lockProgressLeft: document.getElementById('lock-progress-left'),
@@ -623,14 +608,20 @@
 
             if (newState === 'calibrate') {
                 UI.screenCalibrate.classList.remove('hidden');
+                UI.headerQuestionPill.classList.add('hidden');
+                UI.headerQuestionPill.classList.remove('flex');
                 setTimeout(() => {
                     tiltCalibrationBaseline = liveTiltAngle;
                 }, 800);
             } else if (newState === 'playing') {
                 UI.screenGameplay.classList.remove('hidden');
+                UI.headerQuestionPill.classList.remove('hidden');
+                UI.headerQuestionPill.classList.add('flex');
                 startGameCycle();
             } else if (newState === 'complete') {
                 UI.screenComplete.classList.remove('hidden');
+                UI.headerQuestionPill.classList.add('hidden');
+                UI.headerQuestionPill.classList.remove('flex');
                 displayGameResults();
             }
         }
@@ -665,33 +656,13 @@
             UI.questionImg.onerror = function() {
                 UI.questionImg.classList.add('broken-img');
                 UI.questionPlaceholder.classList.remove('hidden');
-                UI.fallbackEmoji.innerHTML = q.emoji;
             };
 
             UI.questionImg.src = q.img;
-
-            timeLeft = 30;
-            updateTimerDisplay();
-            
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft -= 0.1;
-                if (timeLeft <= 0) {
-                    timeLeft = 0;
-                    clearInterval(timerInterval);
-                    checkAnswer('timeout');
-                }
-                updateTimerDisplay();
-            }, 100);
-        }
-
-        function updateTimerDisplay() {
-            UI.gameplayTimerText.innerHTML = `${Math.ceil(timeLeft)}s`;
         }
 
         function checkAnswer(selection) {
             if (currentGameState !== 'playing') return;
-            clearInterval(timerInterval);
             currentGameState = 'feedback';
 
             const q = activeQuestions[currentQuestionIdx];
@@ -702,7 +673,7 @@
                 UI.scoreVal.innerHTML = score;
                 showFeedbackOverlay(true);
             } else {
-                showFeedbackOverlay(false, selection === 'timeout');
+                showFeedbackOverlay(false);
             }
 
             setTimeout(() => {
@@ -713,7 +684,7 @@
             }, 2300);
         }
 
-        function showFeedbackOverlay(isCorrect, isTimeout = false) {
+        function showFeedbackOverlay(isCorrect) {
             UI.feedbackOverlay.classList.remove('hidden');
             UI.feedbackCard.className = "bg-white p-7 rounded-[35px] border-8 shadow-2xl max-w-xs w-full flex flex-col items-center space-y-3 transform scale-95 transition-transform duration-200";
             
@@ -726,15 +697,6 @@
                 UI.feedbackSubtitle.innerHTML = "ยอดเยี่ยมที่สุดเลยครับ!";
                 UI.feedbackSubtitle.className = "text-xs text-emerald-800 font-bold";
                 soundEngine.playCorrect();
-            } else if (isTimeout) {
-                UI.feedbackCard.classList.add('border-amber-400');
-                UI.feedbackIconBox.innerHTML = "⌛";
-                UI.feedbackIconBox.className = "w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-4xl shadow-inner animate-pulse text-amber-500";
-                UI.feedbackTitle.innerHTML = "หมดเวลาแล้วครับ!";
-                UI.feedbackTitle.className = "text-xl md:text-2xl font-black text-amber-600";
-                UI.feedbackSubtitle.innerHTML = "มาลองทำข้อต่อไปกันใหม่นะคนดี!";
-                UI.feedbackSubtitle.className = "text-xs text-amber-800 font-bold";
-                soundEngine.playIncorrect();
             } else {
                 UI.feedbackCard.classList.add('border-rose-400');
                 UI.feedbackIconBox.innerHTML = "❤️";
@@ -864,3 +826,4 @@
     </script>
 </body>
 </html>
+```
