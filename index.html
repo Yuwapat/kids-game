@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ของหนูเอง หรือ ของพวกเรา - เกมแสนสนุกสำหรับเด็กอนุบาล</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Mali -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome สำหรับสัญลักษณ์ไอคอน -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- MediaPipe Face Mesh สำหรับระบบประมวลผลกล้องหน้าจับใบหน้า -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+    <style>
+        html, body {
+            height: 100dvh;
+            max-height: 100dvh;
+            overflow: hidden;
+            font-family: 'Mali', cursive, sans-serif;
+            background-color: #0b0f19;
+            user-select: none;
+        }
+
+        /* เอฟเฟกต์แอนิเมชันขยับดุ๊กดิ๊กเวลาเด็กเลือกตอบ */
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+        .animate-wiggle {
+            animation: wiggle 0.8s ease-in-out infinite;
+        }
+
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-bounce-slow {
+            animation: bounce-slow 2s ease-in-out infinite;
+        }
+
+        /* เอฟเฟกต์ประกายไฟเมื่อตอบถูก */
+        .pulse-sky {
+            box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.9);
+            animation: pulse-sky-anim 1s infinite;
+        }
+        @keyframes pulse-sky-anim {
+            0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.9); transform: scale(1.04); }
+            70% { box-shadow: 0 0 0 30px rgba(56, 189, 248, 0); transform: scale(1.05); }
+            100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); transform: scale(1.04); }
+        }
+
+        .pulse-orange {
+            box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.9);
+            animation: pulse-orange-anim 1s infinite;
+        }
+        @keyframes pulse-orange-anim {
+            0% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.9); transform: scale(1.04); }
+            70% { box-shadow: 0 0 0 30px rgba(251, 146, 60, 0); transform: scale(1.05); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0); transform: scale(1.04); }
+        }
+
+        /* ซ่อนป้ายรูปภาพหากภาพขาดหายเพื่อแสดงภาพ Placeholder แทนอย่างเนียนกริบ */
+        .broken-img {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="relative w-full h-full flex flex-col justify-between overflow-hidden">
+
+    <div class="fixed inset-0 w-full h-full z-0 overflow-hidden">
+        <video id="webcam" class="absolute inset-0 w-full h-full object-cover transform scale-x-[-1] brightness-[0.75]" autoplay playsinline muted></video>
+        <canvas id="face-canvas" class="absolute inset-0 w-full h-full object-cover transform scale-x-[-1] pointer-events-none z-10"></canvas>
+    </div>
+
+    <main id="app-container" class="relative z-20 w-full max-w-7xl mx-auto flex flex-col justify-between h-full p-3 md:p-5 flex-grow">
+
+        <!-- แถบด้านบนสุด: ป้ายชื่อเกมฝั่งซ้าย และ ป้ายเวลากับคะแนนฝั่งขวา ขนาดส่วนสูงเท่ากันสมมาตรพอดีเป๊ะ -->
+        <header class="w-full flex items-center justify-between flex-shrink-0 z-30">
+            <!-- ฝั่งซ้ายบน: ชื่อเกมแสนสนุกสไตล์ปฐมวัย มีแบล็คกราวน์และเงาสะดุดตา -->
+            <div class="h-10 md:h-12 px-4 bg-white/85 backdrop-blur-md rounded-2xl shadow-xl border-2 border-yellow-300 flex items-center space-x-2">
+                <span class="text-xl md:text-2xl animate-wiggle inline-block">🎒</span>
+                <span class="text-xs md:text-base font-black text-amber-800 leading-none">ของหนูเอง หรือ ของพวกเรา?</span>
+            </div>
+
+            <!-- ฝั่งขวาบน: เวลานาฬิกาทราย และ คะแนนสะสม ขนาดส่วนสูงกว้างสมดุลเท่ากันเด่นชัด -->
+            <div class="flex items-center space-x-2">
+                <!-- นาฬิกาทราย (ไม่มีเงาหลังขอบทราย สะอาดตาตามสั่ง) -->
+                <div class="h-10 md:h-12 px-4 bg-white/85 backdrop-blur-md rounded-2xl shadow-xl border-2 border-amber-300 flex items-center space-x-2">
+                    <span id="gameplay-timer-icon" class="text-lg md:text-2xl animate-bounce-slow" style="text-shadow: none !important;">⏳</span>
+                    <span id="gameplay-timer-text" class="text-sm md:text-lg font-black text-slate-800 w-10 text-center">30s</span>
+                </div>
+                <!-- คะแนนคนเก่ง -->
+                <div class="h-10 md:h-12 px-4 bg-yellow-100/90 backdrop-blur-md rounded-2xl border-2 border-yellow-300 shadow-xl flex items-center space-x-1.5">
+                    <span class="text-xs md:text-base font-bold text-amber-900 leading-none">คะแนน:</span>
+                    <span id="score-val" class="text-base md:text-2xl font-black text-amber-600 leading-none">0</span>
+                    <span class="text-amber-500 text-sm md:text-lg leading-none">⭐</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="screen-calibrate" class="flex-grow my-4 flex flex-col items-center justify-center">
+            <div class="bg-white/95 backdrop-blur-md rounded-3xl border-8 border-emerald-400 p-5 shadow-2xl max-w-sm w-full text-center space-y-3">
+                <span class="text-5xl animate-bounce inline-block">🌟</span>
+                <h2 class="text-xl font-black text-emerald-700 leading-tight">จัดตำแหน่งกล้องหน้ากันเถอะ</h2>
+                <p class="text-xs text-slate-600 font-semibold leading-snug">
+                    ให้น้องๆ ยืนตรงและมองกล้องนะคะ
+                </p>
+
+                <!-- แถบไลฟ์พรีวิวสำหรับเช็คพิกัดศีรษะแบบเรียลไทม์ -->
+                <div class="w-full bg-slate-100 rounded-2xl p-2 border border-slate-200">
+                    <div class="flex items-center justify-between text-[10px] font-black mb-1">
+                        <span id="test-indicator-left" class="text-sky-500">◄ ส่วนตัว</span>
+                        <span id="test-indicator-mid" class="text-emerald-500">ตรง ⦿</span>
+                        <span id="test-indicator-right" class="text-orange-500">ส่วนรวม ►</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden relative">
+                        <div id="test-slider-indicator" class="bg-emerald-400 w-3.5 h-full absolute top-0 left-1/2 -ml-1.75 rounded-full transition-all duration-75"></div>
+                    </div>
+                    <div class="text-[9px] text-slate-500 font-bold mt-1" id="tilt-live-debug">องศาใบหน้า: 0°</div>
+                </div>
+
+                <!-- ตัวปรับความไวในการจับเอียง (Sensitivity) -->
+                <div class="bg-amber-50/80 rounded-2xl p-2 border border-amber-200">
+                    <label class="block text-xs font-bold text-amber-900 mb-1 flex justify-between items-center">
+                        <span>🎯 ความไวในการเอียง (Sensitivity)</span>
+                        <span id="sens-val" class="bg-amber-100 text-[10px] px-2 py-0.5 rounded-full font-black text-amber-700">5/10</span>
+                    </label>
+                    <input type="range" id="sensitivity-slider" min="1" max="10" value="5" class="w-full accent-emerald-500 h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+
+                <!-- ปรับสัดส่วนปุ่มให้ลอยสวยงามขึ้นดึงส้นขึ้นข้างบน -->
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="btn-toggle-mirror" class="bg-blue-400 hover:bg-blue-500 active:scale-95 text-white font-black text-xs py-2 px-3 rounded-xl border-b-4 border-blue-600 shadow-md transition-all flex items-center justify-center space-x-1">
+                        <span>🔁 สลับซ้าย-ขวา</span>
+                    </button>
+                    <button id="btn-start-game" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-black text-sm py-2 px-3 rounded-xl border-b-4 border-emerald-700 shadow-lg transition-all flex items-center justify-center space-x-1">
+                        <span>🎮 เริ่มเล่นเลย!</span>
+                    </button>
+                </div>
+
+                <button id="btn-keyboard-fallback" class="text-slate-400 hover:text-slate-600 underline text-[9px] font-semibold">
+                    ⚠️ คลิกตรงนี้เพื่อใช้ปุ่มแป้นพิมพ์ ◄ / ► แทนกล้อง
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-gameplay" class="hidden flex-grow flex flex-col justify-between my-1 relative">
+            
+            <!-- ด้านบนสุด (Upper 35%): ส่วนแสดงรายละเอียดโจทย์แบบยกสูงชิดขอบ เพื่อความโปร่งไม่ซ้อนทับศีรษะเด็ก -->
+            <div id="question-area" class="w-full flex flex-col items-center justify-center space-y-2.5 mt-2 z-30">
+                <!-- แผ่นป้ายเลขข้อ (แยกห่างจากชื่อโจทย์ ไม่บังวรรณยุกต์ไทยแน่นอน) -->
+                <div class="bg-amber-400 text-amber-950 font-black text-xs md:text-sm px-4 py-1.5 rounded-full shadow-lg border-2 border-white/80 transition-all">
+                    🧸 ข้อที่ <span id="current-question-num" class="font-black">1</span>
+                </div>
+
+                <!-- ชื่อข้อความโจทย์ตัวยักษ์ แสดงผลสระ-วรรณยุกต์ครบถ้วนสวยงามและมีเงาสีดำหนาชัดเจน -->
+                <h2 id="question-text" class="text-3xl md:text-6xl font-black text-white drop-shadow-[0_4px_6px_rgba(0,0,0,0.95)] leading-snug tracking-wide text-center"></h2>
+
+                <!-- จุดสำหรับคุณครูแทรกรูปภาพ PNG (หากไม่มีรูป จะดึงสัญลักษณ์อีโมจิน่ารักเป็นตัวแทนอัตโนมัติ) -->
+                <div class="w-20 h-20 md:w-28 md:h-28 flex items-center justify-center bg-white/10 rounded-3xl backdrop-blur-[1px] p-2">
+                    <img id="question-img" src="" class="hidden w-full h-full object-contain" alt="ภาพของใช้">
+                    <div id="question-placeholder" class="flex items-center justify-center">
+                        <span id="fallback-emoji" class="text-5xl md:text-6xl animate-bounce-slow">🎨</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ตรงกลางจอ: ปล่อยโล่ง 100% เพื่อแสดงหน้าตาเด็กและจับพิกัดตา-แก้มได้อย่างแจ่มชัด -->
+            <div class="flex-grow flex items-center justify-center pointer-events-none"></div>
+
+            <div class="absolute bottom-2 left-2 right-2 flex justify-between items-end pointer-events-none w-full z-30">
+                
+                <!-- ฝั่งซ้ายล่าง: ของใช้ส่วนตัว -->
+                <div id="option-left-card" class="option-card pointer-events-auto bg-sky-100/90 hover:bg-sky-200/90 backdrop-blur-md rounded-3xl border-8 border-sky-400 shadow-2xl p-4 flex flex-col items-center justify-center text-center transition-all duration-300 w-44 md:w-60 aspect-[4/3] relative cursor-pointer">
+                    <span class="text-5xl md:text-6xl mb-1.5">👦</span>
+                    <h3 class="text-lg md:text-2xl font-black text-sky-800">ของใช้ส่วนตัว</h3>
+                    <!-- แถบแสดงความคืบหน้าการเอียงศีรษะค้างไว้เพื่อตอบ -->
+                    <div id="lock-progress-left" class="absolute -top-5 left-1/2 -translate-x-1/2 w-11 h-11 bg-white rounded-full border-4 border-sky-500 flex items-center justify-center font-black text-sky-600 shadow-md scale-0 transition-transform duration-100 text-[10px]">0%</div>
+                </div>
+
+                <!-- ป้ายองศามุมล่างสำหรับมอนิเตอร์ระดับกล้อง -->
+                <div class="bg-black/75 backdrop-blur-sm text-white font-bold text-[9px] md:text-xs py-1 px-3 rounded-full flex items-center space-x-1 mb-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="gameplay-tilt-indicator">องศาใบหน้า: 0°</span>
+                </div>
+
+                <!-- ฝั่งขวาล่าง: ของใช้ส่วนรวม -->
+                <div id="option-right-card" class="option-card pointer-events-auto bg-orange-100/90 hover:bg-orange-200/90 backdrop-blur-md rounded-3xl border-8 border-orange-400 shadow-2xl p-4 flex flex-col items-center justify-center text-center transition-all duration-300 w-44 md:w-60 aspect-[4/3] relative cursor-pointer">
+                    <span class="text-5xl md:text-6xl mb-1.5">🧑‍🤝‍🧑</span>
+                    <h3 class="text-lg md:text-2xl font-black text-orange-800">ของใช้ส่วนรวม</h3>
+                    <!-- แถบแสดงความคืบหน้าการเอียงศีรษะค้างไว้เพื่อตอบ -->
+                    <div id="lock-progress-right" class="absolute -top-5 left-1/2 -translate-x-1/2 w-11 h-11 bg-white rounded-full border-4 border-orange-500 flex items-center justify-center font-black text-orange-600 shadow-md scale-0 transition-transform duration-100 text-[10px]">0%</div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="screen-complete" class="hidden flex-grow flex flex-col items-center justify-center text-center p-4">
+            <div class="bg-white/95 backdrop-blur-md rounded-[35px] border-8 border-rose-400 p-6 shadow-2xl max-w-sm w-full text-center space-y-3">
+                <span class="text-5xl animate-bounce inline-block">🏆</span>
+                <h2 class="text-2xl font-black text-rose-600">เก่งที่สุดเลยจ้า!</h2>
+                
+                <div class="bg-yellow-50/90 rounded-2xl p-3 border-2 border-yellow-200 w-full">
+                    <div id="stars-row" class="flex items-center justify-center space-x-1.5 text-3xl text-yellow-400 mb-1">
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                        <i class="fa-solid fa-star"></i>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 mt-2">
+                        <div class="bg-white p-2 rounded-xl border border-yellow-100">
+                            <span class="block text-[8px] text-slate-500 font-bold">ตอบถูกต้อง</span>
+                            <span id="final-score" class="text-lg font-black text-amber-700">0</span>
+                            <span class="text-[10px] font-bold text-slate-600">/25 ข้อ</span>
+                        </div>
+                        <div class="bg-emerald-50 p-2 rounded-xl border border-emerald-100 flex flex-col justify-center items-center">
+                            <span class="text-[8px] text-slate-500 font-bold">เกียรติบัตร</span>
+                            <span id="achievement-label" class="text-[9px] font-black text-emerald-700">เด็กเก่งยอดฝีมือ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-replay" class="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 active:scale-95 text-white font-black text-base py-2.5 px-6 rounded-2xl border-b-4 border-rose-700 shadow-lg transition-all flex items-center justify-center space-x-1.5 w-full">
+                    <span>🔄 เริ่มเล่นอีกครั้งกันเถอะนะ</span>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- หน้าต่างป๊อปอัปแจ้งเตือนความถูกต้อง (Feedback Popup Overlay) -->
+    <div id="feedback-overlay" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center text-center p-4 backdrop-blur-sm transition-all duration-200">
+        <div id="feedback-card" class="bg-white p-6 rounded-[35px] border-8 shadow-2xl max-w-xs w-full flex flex-col items-center space-y-3 transform scale-95 transition-transform duration-200">
+            <div id="feedback-icon-box" class="w-16 h-16 rounded-full flex items-center justify-center text-4xl shadow-inner animate-bounce">
+                🎉
+            </div>
+            <h3 id="feedback-title" class="text-xl md:text-2xl font-black"></h3>
+            <p id="feedback-subtitle" class="text-xs text-slate-600 font-bold leading-relaxed"></p>
+        </div>
+    </div>
+
+    <div id="notification-banner" class="hidden fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-slate-800/95 backdrop-blur-sm text-white font-bold text-xs py-2 px-4 rounded-xl shadow-xl border border-amber-300 animate-bounce">
+        <span id="notification-text"></span>
+    </div>
+
+    <script>
+        // ระบบสร้างและสังเคราะห์คลื่นเสียง (Web Audio API)
+        const soundEngine = {
+            ctx: null,
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+
+            playCorrect() {
+                this.init();
+                const now = this.ctx.currentTime;
+                
+                const osc1 = this.ctx.createOscillator();
+                const gain1 = this.ctx.createGain();
+                osc1.type = 'triangle';
+                osc1.frequency.setValueAtTime(523.25, now);
+                gain1.gain.setValueAtTime(0.12, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc1.connect(gain1);
+                gain1.connect(this.ctx.destination);
+                osc1.start(now);
+                osc1.stop(now + 0.3);
+
+                const osc2 = this.ctx.createOscillator();
+                const gain2 = this.ctx.createGain();
+                osc2.type = 'triangle';
+                osc2.frequency.setValueAtTime(659.25, now + 0.08);
+                gain2.gain.setValueAtTime(0.12, now + 0.08);
+                gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc2.connect(gain2);
+                gain2.connect(this.ctx.destination);
+                osc2.start(now + 0.08);
+                osc2.stop(now + 0.35);
+            },
+
+            playIncorrect() {
+                this.init();
+                const now = this.ctx.currentTime;
+                
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(150, now + 0.35);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            },
+
+            playFanfare() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, index) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + index * 0.1);
+                    gain.gain.setValueAtTime(0.1, now + index * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + index * 0.1 + 0.5);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + index * 0.1);
+                    osc.stop(now + index * 0.1 + 0.5);
+                });
+            }
+        };
+
+        // ==========================================================
+        // คลังโจทย์คำถามทั้ง 25 ข้อ (แก้ไขค่า 'personal' สมบูรณ์เรียบร้อย)
+        // ==========================================================
+        const questionsBank = [
+            // --- หมวดของใช้ส่วนตัว (personal) ---
+            { id: 1, text: "แปรงสีฟัน", img: "images/item1.png", answer: "personal", emoji: "🪥" },
+            { id: 2, text: "ผ้าเช็ดหน้า", img: "images/item2.png", answer: "personal", emoji: "🧣" },
+            { id: 3, text: "แก้วน้ำดื่ม", img: "images/item3.png", answer: "personal", emoji: "🥛" },
+            { id: 4, text: "ช้อนส้อม", img: "images/item4.png", answer: "personal", emoji: "🍴" },
+            { id: 5, text: "ผ้าห่มนอน", img: "images/item5.png", answer: "personal", emoji: "🛏️" },
+            { id: 6, text: "หน้ากากอนามัย", img: "images/item6.png", answer: "personal", emoji: "😷" },
+            { id: 7, text: "หมอนหนุน", img: "images/item7.png", answer: "personal", emoji: "💤" },
+            { id: 8, text: "หวีสางผม", img: "images/item8.png", answer: "personal", emoji: "💈" },
+            { id: 9, text: "รองเท้าพละ", img: "images/item9.png", answer: "personal", emoji: "👟" },
+            { id: 10, text: "ผ้าเช็ดตัว", img: "images/item10.png", answer: "personal", emoji: "🧖" },
+            { id: 11, text: "กล่องดินสอ", img: "images/item11.png", answer: "personal", emoji: "✏️" },
+            { id: 12, text: "กระติกน้ำร้อน", img: "images/item12.png", answer: "personal", emoji: "🥤" },
+            
+            // --- หมวดของใช้ส่วนรวม (shared) ---
+            { id: 13, text: "ของเล่นในห้องเรียน", img: "images/item13.png", answer: "shared", emoji: "🧸" },
+            { id: 14, text: "ไม้กวาดและที่ตักผง", img: "images/item14.png", answer: "shared", emoji: "🧹" },
+            { id: 15, text: "หนังสือนิทานในมุมหนังสือ", img: "images/item15.png", answer: "shared", emoji: "📚" },
+            { id: 16, text: "ถังขยะ", img: "images/item16.png", answer: "shared", emoji: "🗑️" },
+            { id: 17, text: "ทีวีในห้องเรียน", img: "images/item17.png", answer: "shared", emoji: "📺" },
+            { id: 18, text: "นาฬิกาฝาผนัง", img: "images/item18.png", answer: "shared", emoji: "⏰" },
+            { id: 19, text: "โต๊ะและเก้าอี้เรียน", img: "images/item19.png", answer: "shared", emoji: "🪑" },
+            { id: 20, text: "พัดลม/แอร์", img: "images/item20.png", answer: "shared", emoji: "🌀" },
+            { id: 21, text: "กระดานไวท์บอร์ด", img: "images/item21.png", answer: "shared", emoji: "📋" },
+            { id: 22, text: "สีเทียน/สีไม้ประจำกลุ่ม", img: "images/item22.png", answer: "shared", emoji: "🖍️" },
+            { id: 23, text: "อ่างล้างมือ", img: "images/item23.png", answer: "shared", emoji: "🚰" },
+            { id: 24, text: "กรรไกรตัดกระดาษของห้อง", img: "images/item24.png", answer: "shared", emoji: "✂️" },
+            { id: 25, text: "ร่มคันใหญ่ของห้องเรียน", img: "images/item25.png", answer: "shared", emoji: "🌂" }
+        ];
+
+        let currentGameState = 'loading';
+        let activeQuestions = [];
+        let currentQuestionIdx = 0;
+        let score = 0;
+        let timerInterval = null;
+        let timeLeft = 30;
+        let selectionHoldTarget = null;
+        let selectionHoldTime = 0;
+
+        let tiltCalibrationBaseline = 0;
+        let liveTiltAngle = 0;
+        let trackingActive = false;
+        let webcamStream = null;
+        let sensitivityThreshold = 14.5;
+        let invertTiltDirection = false;
+
+        const UI = {
+            screenCalibrate: document.getElementById('screen-calibrate'),
+            screenGameplay: document.getElementById('screen-gameplay'),
+            screenComplete: document.getElementById('screen-complete'),
+            btnStartGame: document.getElementById('btn-start-game'),
+            btnKeyboardFallback: document.getElementById('btn-keyboard-fallback'),
+            btnReplay: document.getElementById('btn-replay'),
+            btnToggleMirror: document.getElementById('btn-toggle-mirror'),
+            scoreVal: document.getElementById('score-val'),
+            
+            sensitivitySlider: document.getElementById('sensitivity-slider'),
+            sensVal: document.getElementById('sens-val'),
+            tiltLiveDebug: document.getElementById('tilt-live-debug'),
+            testSliderIndicator: document.getElementById('test-slider-indicator'),
+            testIndicatorLeft: document.getElementById('test-indicator-left'),
+            testIndicatorMid: document.getElementById('test-indicator-mid'),
+            testIndicatorRight: document.getElementById('test-indicator-right'),
+
+            notificationBanner: document.getElementById('notification-banner'),
+            notificationText: document.getElementById('notification-text'),
+
+            currentQuestionNum: document.getElementById('current-question-num'),
+            questionText: document.getElementById('question-text'),
+            questionImg: document.getElementById('question-img'),
+            questionPlaceholder: document.getElementById('question-placeholder'),
+            fallbackEmoji: document.getElementById('fallback-emoji'),
+            gameplayTimerIcon: document.getElementById('gameplay-timer-icon'),
+            gameplayTimerText: document.getElementById('gameplay-timer-text'),
+            optionLeftCard: document.getElementById('option-left-card'),
+            optionRightCard: document.getElementById('option-right-card'),
+            lockProgressLeft: document.getElementById('lock-progress-left'),
+            lockProgressRight: document.getElementById('lock-progress-right'),
+            gameplayTiltIndicator: document.getElementById('gameplay-tilt-indicator'),
+
+            feedbackOverlay: document.getElementById('feedback-overlay'),
+            feedbackCard: document.getElementById('feedback-card'),
+            feedbackIconBox: document.getElementById('feedback-icon-box'),
+            feedbackTitle: document.getElementById('feedback-title'),
+            feedbackSubtitle: document.getElementById('feedback-subtitle'),
+
+            starsRow: document.getElementById('stars-row'),
+            finalScore: document.getElementById('final-score'),
+            achievementLabel: document.getElementById('achievement-label'),
+            
+            video: document.getElementById('webcam'),
+            canvas: document.getElementById('face-canvas'),
+            canvasCtx: document.getElementById('face-canvas').getContext('2d'),
+        };
+
+        window.onload = async () => {
+            await initCameraAndTracking();
+        };
+
+        async function initCameraAndTracking() {
+            try {
+                webcamStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480, facingMode: "user" }
+                });
+                
+                UI.video.srcObject = webcamStream;
+
+                const faceMesh = new FaceMesh({
+                    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+                });
+
+                faceMesh.setOptions({
+                    maxNumFaces: 1,
+                    refineLandmarks: true,
+                    minDetectionConfidence: 0.6,
+                    minTrackingConfidence: 0.6
+                });
+
+                faceMesh.onResults(onFaceTrackingResults);
+
+                const cameraLoop = async () => {
+                    if (trackingActive) {
+                        try {
+                            await faceMesh.send({ image: UI.video });
+                        } catch (err) {
+                            console.error("การส่งเฟรมมีปัญหา:", err);
+                        }
+                    }
+                    requestAnimationFrame(cameraLoop);
+                };
+
+                trackingActive = true;
+                cameraLoop();
+                changeState('calibrate');
+
+            } catch (err) {
+                console.warn("ไม่สามารถเรียกกล้องได้ สลับไปโหมดทดแทนแป้นพิมพ์", err);
+                enableKeyboardFallbackOnly();
+                changeState('calibrate');
+            }
+        }
+
+        function onFaceTrackingResults(results) {
+            UI.canvas.width = UI.video.clientWidth;
+            UI.canvas.height = UI.video.clientHeight;
+            UI.canvasCtx.clearRect(0, 0, UI.canvas.width, UI.canvas.height);
+
+            if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+                const landmarks = results.multiFaceLandmarks[0];
+                const leftEye = landmarks[33];
+                const rightEye = landmarks[263];
+
+                const dy = (rightEye.y - leftEye.y) * UI.canvas.height;
+                const dx = (rightEye.x - leftEye.x) * UI.canvas.width;
+
+                let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+                let rawTilt = angle - tiltCalibrationBaseline;
+                
+                liveTiltAngle = invertTiltDirection ? -rawTilt : rawTilt;
+
+                drawCuteFaceGuides(landmarks);
+                handleTiltInput(liveTiltAngle);
+            } else {
+                handleTiltInput(0);
+            }
+        }
+
+        // วาดจุดเอฟเฟกต์นำสายตาน่ารักๆ บนใบหน้า
+        function drawCuteFaceGuides(landmarks) {
+            const ctx = UI.canvasCtx;
+            const w = UI.canvas.width;
+            const h = UI.canvas.height;
+
+            ctx.fillStyle = "rgba(16, 185, 129, 0.75)";
+            
+            const drawEyeBubble = (p) => {
+                ctx.beginPath();
+                ctx.arc(p.x * w, p.y * h, 5, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = "#FFF";
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            };
+            
+            drawEyeBubble(landmarks[33]);
+            drawEyeBubble(landmarks[263]);
+
+            const drawCheekBlush = (p) => {
+                ctx.fillStyle = "rgba(244, 63, 94, 0.4)";
+                ctx.beginPath();
+                ctx.arc(p.x * w, p.y * h, 14, 0, 2 * Math.PI);
+                ctx.fill();
+            };
+            drawCheekBlush(landmarks[50]);
+            drawCheekBlush(landmarks[280]);
+        }
+
+        // ประมวลผลเมื่อหัวเอียงซ้ายหรือขวา
+        function handleTiltInput(angle) {
+            const dirText = angle > 4 ? `ขวา` : angle < -4 ? `ซ้าย` : `ตรง`;
+            if (currentGameState === 'calibrate') {
+                UI.tiltLiveDebug.innerHTML = `เอียง: ${angle.toFixed(1)}° (${dirText})`;
+                
+                const mappedPercent = Math.min(Math.max(angle, -25), 25);
+                const slideLeft = 50 + (mappedPercent / 25) * 50;
+                UI.testSliderIndicator.style.left = `${slideLeft}%`;
+
+                if (angle < -sensitivityThreshold) {
+                    UI.testIndicatorLeft.className = "text-sky-600 font-black scale-105 transition-transform duration-100";
+                    UI.testIndicatorRight.className = "text-orange-400 font-bold scale-100";
+                } else if (angle > sensitivityThreshold) {
+                    UI.testIndicatorRight.className = "text-orange-600 font-black scale-105 transition-transform duration-100";
+                    UI.testIndicatorLeft.className = "text-sky-400 font-bold scale-100";
+                } else {
+                    UI.testIndicatorLeft.className = "text-sky-500 font-bold scale-100";
+                    UI.testIndicatorRight.className = "text-orange-500 font-bold scale-100";
+                }
+            }
+
+            if (currentGameState === 'playing') {
+                UI.gameplayTiltIndicator.innerHTML = `องศาใบหน้า: ${angle.toFixed(1)}° (${dirText})`;
+
+                let currentInput = null;
+                if (angle < -sensitivityThreshold) {
+                    currentInput = 'personal';
+                } else if (angle > sensitivityThreshold) {
+                    currentInput = 'shared';
+                }
+
+                evaluateSelectionHold(currentInput);
+            }
+        }
+
+        // ระบบจับความก้าวหน้าของการเอียงคอค้าง 0.8 วินาที
+        let lastTimestamp = performance.now();
+        function evaluateSelectionHold(input) {
+            const now = performance.now();
+            const dt = now - lastTimestamp;
+            lastTimestamp = now;
+
+            if (input === null) {
+                selectionHoldTarget = null;
+                selectionHoldTime = 0;
+                resetOptionCardAnimations();
+                return;
+            }
+
+            if (selectionHoldTarget !== input) {
+                selectionHoldTarget = input;
+                selectionHoldTime = 0;
+                resetOptionCardAnimations();
+                
+                if (input === 'personal') {
+                    UI.optionLeftCard.classList.add('pulse-sky');
+                } else {
+                    UI.optionRightCard.classList.add('pulse-orange');
+                }
+            } else {
+                selectionHoldTime += dt;
+                const progressPercent = Math.min(100, Math.floor((selectionHoldTime / 800) * 100));
+
+                if (input === 'personal') {
+                    UI.lockProgressLeft.style.transform = "scale(1)";
+                    UI.lockProgressLeft.innerHTML = `${progressPercent}%`;
+                } else {
+                    UI.lockProgressRight.style.transform = "scale(1)";
+                    UI.lockProgressRight.innerHTML = `${progressPercent}%`;
+                }
+
+                if (selectionHoldTime >= 800) {
+                    const selected = selectionHoldTarget;
+                    selectionHoldTarget = null;
+                    selectionHoldTime = 0;
+                    resetOptionCardAnimations();
+                    checkAnswer(selected);
+                }
+            }
+        }
+
+        function resetOptionCardAnimations() {
+            UI.optionLeftCard.classList.remove('pulse-sky');
+            UI.optionRightCard.classList.remove('pulse-orange');
+            UI.lockProgressLeft.style.transform = "scale(0)";
+            UI.lockProgressRight.style.transform = "scale(0)";
+        }
+
+        function changeState(newState) {
+            currentGameState = newState;
+            
+            UI.screenCalibrate.classList.add('hidden');
+            UI.screenGameplay.classList.add('hidden');
+            UI.screenComplete.classList.add('hidden');
+
+            if (newState === 'calibrate') {
+                UI.screenCalibrate.classList.remove('hidden');
+                setTimeout(() => {
+                    tiltCalibrationBaseline = liveTiltAngle;
+                }, 800);
+            } else if (newState === 'playing') {
+                UI.screenGameplay.classList.remove('hidden');
+                startGameCycle();
+            } else if (newState === 'complete') {
+                UI.screenComplete.classList.remove('hidden');
+                displayGameResults();
+            }
+        }
+
+        function startGameCycle() {
+            currentQuestionIdx = 0;
+            score = 0;
+            UI.scoreVal.innerHTML = score;
+            activeQuestions = shuffleArray([...questionsBank]);
+            loadQuestion(currentQuestionIdx);
+        }
+
+        function loadQuestion(index) {
+            if (index >= activeQuestions.length) {
+                changeState('complete');
+                return;
+            }
+
+            const q = activeQuestions[index];
+            UI.currentQuestionNum.innerHTML = index + 1;
+            UI.questionText.innerHTML = q.text;
+
+            UI.questionImg.classList.remove('broken-img');
+            UI.questionImg.classList.add('hidden');
+            UI.questionPlaceholder.classList.remove('hidden');
+            
+            UI.questionImg.onload = function() {
+                UI.questionImg.classList.remove('hidden');
+                UI.questionPlaceholder.classList.add('hidden');
+            };
+
+            UI.questionImg.onerror = function() {
+                UI.questionImg.classList.add('broken-img');
+                UI.questionPlaceholder.classList.remove('hidden');
+                UI.fallbackEmoji.innerHTML = q.emoji;
+            };
+
+            UI.questionImg.src = q.img;
+
+            timeLeft = 30;
+            updateTimerDisplay();
+            
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    clearInterval(timerInterval);
+                    checkAnswer('timeout');
+                }
+                updateTimerDisplay();
+            }, 100);
+        }
+
+        function updateTimerDisplay() {
+            UI.gameplayTimerText.innerHTML = `${Math.ceil(timeLeft)}s`;
+        }
+
+        function checkAnswer(selection) {
+            if (currentGameState !== 'playing') return;
+            clearInterval(timerInterval);
+            currentGameState = 'feedback';
+
+            const q = activeQuestions[currentQuestionIdx];
+            const isCorrect = (selection === q.answer);
+
+            if (isCorrect) {
+                score++;
+                UI.scoreVal.innerHTML = score;
+                showFeedbackOverlay(true);
+            } else {
+                showFeedbackOverlay(false, selection === 'timeout');
+            }
+
+            setTimeout(() => {
+                hideFeedbackOverlay();
+                currentQuestionIdx++;
+                currentGameState = 'playing';
+                loadQuestion(currentQuestionIdx);
+            }, 2300);
+        }
+
+        function showFeedbackOverlay(isCorrect, isTimeout = false) {
+            UI.feedbackOverlay.classList.remove('hidden');
+            UI.feedbackCard.className = "bg-white p-7 rounded-[35px] border-8 shadow-2xl max-w-xs w-full flex flex-col items-center space-y-3 transform scale-95 transition-transform duration-200";
+            
+            if (isCorrect) {
+                UI.feedbackCard.classList.add('border-emerald-400');
+                UI.feedbackIconBox.innerHTML = "🎉";
+                UI.feedbackIconBox.className = "w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-4xl shadow-inner animate-bounce text-emerald-600";
+                UI.feedbackTitle.innerHTML = "ถูกต้องนะคนเก่ง!";
+                UI.feedbackTitle.className = "text-xl md:text-2xl font-black text-emerald-600";
+                UI.feedbackSubtitle.innerHTML = "ยอดเยี่ยมที่สุดเลยครับ!";
+                UI.feedbackSubtitle.className = "text-xs text-emerald-800 font-bold";
+                soundEngine.playCorrect();
+            } else if (isTimeout) {
+                UI.feedbackCard.classList.add('border-amber-400');
+                UI.feedbackIconBox.innerHTML = "⌛";
+                UI.feedbackIconBox.className = "w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center text-4xl shadow-inner animate-pulse text-amber-500";
+                UI.feedbackTitle.innerHTML = "หมดเวลาแล้วครับ!";
+                UI.feedbackTitle.className = "text-xl md:text-2xl font-black text-amber-600";
+                UI.feedbackSubtitle.innerHTML = "มาลองทำข้อต่อไปกันใหม่นะคนดี!";
+                UI.feedbackSubtitle.className = "text-xs text-amber-800 font-bold";
+                soundEngine.playIncorrect();
+            } else {
+                UI.feedbackCard.classList.add('border-rose-400');
+                UI.feedbackIconBox.innerHTML = "❤️";
+                UI.feedbackIconBox.className = "w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center text-4xl shadow-inner animate-pulse text-rose-500";
+                UI.feedbackTitle.innerHTML = "ลองดูอีกครั้งนะครับ";
+                UI.feedbackTitle.className = "text-xl md:text-2xl font-black text-rose-600";
+                UI.feedbackSubtitle.innerHTML = "ตั้งใจดูอีกรอบนะคนเก่ง!";
+                UI.feedbackSubtitle.className = "text-xs text-rose-800 font-bold";
+                soundEngine.playIncorrect();
+            }
+
+            setTimeout(() => {
+                UI.feedbackCard.classList.remove('scale-95');
+                UI.feedbackCard.classList.add('scale-100');
+            }, 50);
+        }
+
+        function hideFeedbackOverlay() {
+            UI.feedbackOverlay.classList.add('hidden');
+        }
+
+        function showNotification(text) {
+            UI.notificationText.innerText = text;
+            UI.notificationBanner.classList.remove('hidden');
+            setTimeout(() => {
+                UI.notificationBanner.classList.add('hidden');
+            }, 3000);
+        }
+
+        // คำนวณสรุปผลดาวเมื่อสิ้นสุดเกม
+        function displayGameResults() {
+            UI.finalScore.innerHTML = score;
+            soundEngine.playFanfare();
+            UI.starsRow.innerHTML = '';
+            
+            let starCount = 1;
+            if (score >= 22) starCount = 5;
+            else if (score >= 18) starCount = 4;
+            else if (score >= 13) starCount = 3;
+            else if (score >= 8) starCount = 2;
+
+            for (let i = 0; i < 5; i++) {
+                const star = document.createElement('i');
+                if (i < starCount) {
+                    star.className = "fa-solid fa-star text-yellow-400 drop-shadow-md transform scale-110 transition-all duration-300";
+                } else {
+                    star.className = "fa-regular fa-star text-slate-300 drop-shadow-sm";
+                }
+                UI.starsRow.appendChild(star);
+            }
+
+            if (starCount === 5) {
+                UI.achievementLabel.innerHTML = "👑 ยอดคุณหนูนักคิดวิเคราะห์";
+            } else if (starCount >= 3) {
+                UI.achievementLabel.innerHTML = "🏆 คนเก่งประจำห้องเรียน";
+            } else {
+                UI.achievementLabel.innerHTML = "✨ ยินดีกับความตั้งใจจ้า";
+            }
+        }
+
+        UI.sensitivitySlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            UI.sensVal.innerHTML = `${val}/10`;
+            sensitivityThreshold = 22 - (val * 1.5); 
+        });
+
+        UI.btnToggleMirror.addEventListener('click', () => {
+            invertTiltDirection = !invertTiltDirection;
+            
+            if (invertTiltDirection) {
+                UI.btnToggleMirror.className = "bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-black text-xs py-2 px-3 rounded-xl border-b-4 border-rose-700 shadow-md transition-all flex items-center justify-center space-x-1";
+                showNotification("สลับการเอียงด้านเรียบร้อย! 🔁");
+            } else {
+                UI.btnToggleMirror.className = "bg-blue-400 hover:bg-blue-500 active:scale-95 text-white font-black text-xs py-2 px-3 rounded-xl border-b-4 border-blue-600 shadow-md transition-all flex items-center justify-center space-x-1";
+                showNotification("กลับมาใช้พิกัดกล้องมาตรฐานแล้วจ้า!");
+            }
+            tiltCalibrationBaseline = liveTiltAngle;
+        });
+
+        UI.btnStartGame.addEventListener('click', () => {
+            soundEngine.init();
+            changeState('playing');
+        });
+
+        UI.btnReplay.addEventListener('click', () => {
+            changeState('playing');
+        });
+
+        UI.btnKeyboardFallback.addEventListener('click', () => {
+            enableKeyboardFallbackOnly();
+            changeState('playing');
+        });
+
+        function enableKeyboardFallbackOnly() {
+            trackingActive = false;
+            if (webcamStream) {
+                webcamStream.getTracks().forEach(track => track.stop());
+            }
+            showNotification("ใช้คีย์บอร์ด ปุ่ม ◄ และ ► เล่นได้เลยจ้า!");
+        }
+
+        // ระบบสำรองคีย์บอร์ดให้คุณครูช่วยแก้โจทย์
+        window.addEventListener('keydown', (e) => {
+            if (currentGameState === 'playing') {
+                if (e.key === 'ArrowLeft') {
+                    checkAnswer('personal');
+                } else if (e.key === 'ArrowRight') {
+                    checkAnswer('shared');
+                }
+            }
+        });
+
+        UI.optionLeftCard.addEventListener('click', () => {
+            if (currentGameState === 'playing') checkAnswer('personal');
+        });
+        UI.optionRightCard.addEventListener('click', () => {
+            if (currentGameState === 'playing') checkAnswer('shared');
+        });
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+    </script>
+</body>
+</html>
